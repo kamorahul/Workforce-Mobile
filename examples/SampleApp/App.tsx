@@ -1,5 +1,13 @@
-import React, { useEffect } from 'react';
-import { DevSettings, LogBox, Platform, useColorScheme } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  Button,
+  DevSettings,
+  LogBox,
+  Platform,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -14,7 +22,8 @@ import {
 } from 'stream-chat-react-native';
 import { getMessaging } from '@react-native-firebase/messaging';
 import notifee, { EventType } from '@notifee/react-native';
-import { AppContext } from './src/context/AppContext';
+import { useAuth0, Auth0Provider, User } from 'react-native-auth0';
+import { AppContext, useAppContext } from './src/context/AppContext';
 import { AppOverlayProvider } from './src/context/AppOverlayProvider';
 import { UserSearchProvider } from './src/context/UserSearchContext';
 import { useChatClient } from './src/hooks/useChatClient';
@@ -74,10 +83,13 @@ notifee.onBackgroundEvent(async ({ detail, type }) => {
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator<StackNavigatorParamList>();
 const UserSelectorStack = createStackNavigator<UserSelectorParamList>();
+
 const App = () => {
   const { chatClient, isConnecting, loginUser, logout, switchUser } = useChatClient();
   const colorScheme = useColorScheme();
   const streamChatTheme = useStreamChatTheme();
+  const { user } = useAuth0();
+
 
   useEffect(() => {
     const messaging = getMessaging();
@@ -125,38 +137,80 @@ const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if(user) {
+      switchUser(user as User);
+    }
+  }, [user]);
+
   return (
-    <SafeAreaProvider
-      style={{
-        backgroundColor: streamChatTheme.colors?.white_snow || '#FCFCFC',
-      }}
-    >
-      <ThemeProvider style={streamChatTheme}>
-        <NavigationContainer
-          ref={RootNavigationRef}
-          theme={{
-            colors: {
-              ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme).colors,
-              background: streamChatTheme.colors?.white_snow || '#FCFCFC',
-            },
-            fonts: (colorScheme === 'dark' ? DarkTheme : DefaultTheme).fonts,
-            dark: colorScheme === 'dark',
-          }}
-        >
-          <AppContext.Provider value={{ chatClient, loginUser, logout, switchUser }}>
-            {isConnecting && !chatClient ? (
-              <LoadingScreen />
-            ) : chatClient ? (
-              <DrawerNavigatorWrapper chatClient={chatClient} />
-            ) : (
-              <UserSelector />
-            )}
-          </AppContext.Provider>
-        </NavigationContainer>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <Auth0Provider domain={'dev-b2tyy2ginewj0x16.us.auth0.com'} clientId={'xJ9GgWFijIa6WMXXnfD5a9CvXzuV4JxR'}>
+      <SafeAreaProvider
+        style={{
+          backgroundColor: streamChatTheme.colors?.white_snow || '#FCFCFC',
+        }}
+      >
+        <ThemeProvider style={streamChatTheme}>
+          <NavigationContainer
+            ref={RootNavigationRef}
+            theme={{
+              colors: {
+                ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme).colors,
+                background: streamChatTheme.colors?.white_snow || '#FCFCFC',
+              },
+              fonts: (colorScheme === 'dark' ? DarkTheme : DefaultTheme).fonts,
+              dark: colorScheme === 'dark',
+            }}
+          >
+            <AppContext.Provider value={{ chatClient, loginUser, logout, switchUser }}>
+              { !chatClient ? (
+                <LoginButton />
+              ) : chatClient ? (
+                <DrawerNavigatorWrapper chatClient={chatClient} />
+              ) : (
+                <LoginButton />
+              )}
+            </AppContext.Provider>
+          </NavigationContainer>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </Auth0Provider>
   );
 };
+
+const LoginButton: React.FC = () => {
+  const { authorize, user  } = useAuth0();
+  const { switchUser } = useAppContext();
+
+  useEffect(() => {
+    if(user) {
+      switchUser(user as User);
+    }
+  }, [user]);
+
+  const onPress = async () => {
+    try {
+      await authorize({redirectUrl: 'ai.convoe.workforceAi.auth0://dev-b2tyy2ginewj0x16.us.auth0.com/ios/ai.convoe.workforceAi/callback'});
+      switchUser(user as User);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Button onPress={onPress} title='Log in' />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center', // Centers vertically
+    alignItems: 'center', // Centers horizontally
+  },
+});
 
 const DrawerNavigator: React.FC = () => (
   <Drawer.Navigator
@@ -175,13 +229,15 @@ const DrawerNavigatorWrapper: React.FC<{
   chatClient: StreamChat<StreamChatGenerics>;
 }> = ({ chatClient }) => {
   const { bottom } = useSafeAreaInsets();
-  const streamChatTheme = useStreamChatTheme();
+  const streamChatTheme = useStreamChatTheme()
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <OverlayProvider<StreamChatGenerics> bottomInset={bottom} value={{ style: streamChatTheme }}>
+        {/*{!user && <LoginButton />}*/}
         <Chat<StreamChatGenerics>
           client={chatClient}
+
           enableOfflineSupport
           // @ts-expect-error - the `ImageComponent` prop is generic, meaning we can expect an error
           ImageComponent={FastImage}

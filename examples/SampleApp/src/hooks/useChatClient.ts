@@ -5,9 +5,18 @@ import notifee from '@notifee/react-native';
 import { SqliteClient } from 'stream-chat-react-native';
 import { USER_TOKENS, USERS } from '../ChatUsers';
 import AsyncStore from '../utils/AsyncStore';
-
 import type { LoginConfig, StreamChatGenerics } from '../types';
 import { PermissionsAndroid, Platform } from 'react-native';
+import { useAuth0, User } from 'react-native-auth0';
+import axios from 'axios';
+
+interface WorkforceUser {
+  username: string;
+}
+interface AuthResponse {
+  token: string;
+  user: WorkforceUser;
+}
 
 const messaging = getMessaging();
 
@@ -53,7 +62,9 @@ export const useChatClient = () => {
       image: config.userImage,
       name: config.userName,
     };
-    await client.connectUser(user, config.userToken);
+    console.log('Called ConnectUser');
+    const res = await client.connectUser(user, config.userToken);
+    console.log(res);
     await AsyncStore.setItem('@stream-rn-sampleapp-login-config', config);
 
     const permissionAuthStatus = await messaging.hasPermission();
@@ -129,39 +140,39 @@ export const useChatClient = () => {
         unsubscribeForegroundMessageReceive();
       };
     }
+    console.log('Setting Chat CLient ... ');
     setChatClient(client);
   };
 
-  const switchUser = async (userId?: string) => {
-    if (chatClient?.userID) {
-      return;
-    }
-
+  const switchUser = async (user: User | null) => {
     setIsConnecting(true);
 
     try {
-      if (userId) {
-        await loginUser({
-          apiKey: 'yjrt5yxw77ev',
-          userId: USERS[userId].id,
-          userImage: USERS[userId].image,
-          userName: USERS[userId].name,
-          userToken: USER_TOKENS[userId],
-        });
-      } else {
-        const config = await AsyncStore.getItem<LoginConfig | null>(
-          '@stream-rn-sampleapp-login-config',
-          null,
+      if (user?.email) {
+        const username = user?.email?.replace(/([^a-z0-9_-]+)/gi, "_");
+        const response = await axios.post<AuthResponse>(
+          'https://api.convoe.ai/join',
+          { username },
+          { headers: { 'Content-Type': 'application/json' } },
         );
 
-        if (config) {
-          await loginUser(config);
-        }
+        console.log('response', response);
+        await loginUser({
+          apiKey: 'p582dvv4pysh',
+          userId: username,
+          userImage: user.picture,
+          userName: user.nickname,
+          userToken: response.data.token,
+        });
+
       }
     } catch (e) {
       console.warn(e);
     }
+    console.log('setIsConnecting Begin ', isConnecting);
     setIsConnecting(false);
+    console.log('setIsConnecting End ', isConnecting);
+
   };
 
   const logout = async () => {
@@ -170,16 +181,6 @@ export const useChatClient = () => {
     chatClient?.disconnectUser();
     await AsyncStore.removeItem('@stream-rn-sampleapp-login-config');
   };
-
-  useEffect(() => {
-    const run = async () => {
-      await requestNotificationPermission();
-      await switchUser();
-    };
-    run();
-    return unsubscribePushListenersRef.current;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return {
     chatClient,
