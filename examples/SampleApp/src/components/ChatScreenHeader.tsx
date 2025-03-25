@@ -28,7 +28,7 @@ type ChatScreenHeaderNavigationProp = CompositeNavigationProp<
   StackNavigationProp<StackNavigatorParamList>
 >;
 
-export const ChatScreenHeader: React.FC<{ title?: string }> = ({ title = 'Stream Chat' }) => {
+export const ChatScreenHeader: React.FC<{ title?: string }> = ({ title = 'Convoe' }) => {
   const {
     theme: {
       colors: { accent_blue },

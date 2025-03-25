@@ -81,6 +81,8 @@ export const useChatClient = () => {
       // await messaging.set;
       const apnsToken = await messaging.getAPNSToken();
       const firebaseToken = await messaging.getToken();
+      console.log('firebase Token', firebaseToken);
+
       const provider = await AsyncStore.getItem('@stream-rn-sampleapp-push-provider', {
         id: 'firebase',
         name: 'rn-fcm',
@@ -94,9 +96,15 @@ export const useChatClient = () => {
         providerNameOverride && providerNameOverride?.length > 0
           ? providerNameOverride
           : (provider?.name ?? 'rn-fcm');
+      console.log(id);
       const token = id === 'firebase' ? firebaseToken : (apnsToken ?? firebaseToken);
-      await client.addDevice(token, id as PushProvider, client.userID, name);
-
+      console.log('add device info ',token, id as PushProvider, client.userID, name);
+      try {
+        const resD = await client.addDevice(token, id as PushProvider, client.userID, "Firebase");
+        console.log(resD);
+      } catch (e) {
+        console.error(e);
+      }
       // Listen to new FCM tokens and register them with stream chat server.
       const unsubscribeTokenRefresh = messaging.onTokenRefresh(async (newFirebaseToken) => {
         const newApnsToken = await messaging.getAPNSToken();
@@ -146,6 +154,8 @@ export const useChatClient = () => {
 
   const switchUser = async (user: User | null) => {
     setIsConnecting(true);
+
+    await requestNotificationPermission();
 
     try {
       if (user?.email) {
