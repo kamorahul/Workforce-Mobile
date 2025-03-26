@@ -89,6 +89,7 @@ android {
         vectorDrawables.useSupportLibrary = true
         versionCode 22
         versionName "0.0.22"
+        manifestPlaceholders = [auth0Domain: "dev-b2tyy2ginewj0x16.us.auth0.com", auth0Scheme: "${applicationId}.auth0"]
     }
 
     signingConfigs {
