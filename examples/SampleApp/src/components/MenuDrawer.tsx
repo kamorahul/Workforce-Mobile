@@ -14,6 +14,7 @@ import { useAppContext } from '../context/AppContext';
 import { SecretMenu } from './SecretMenu.tsx';
 
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
+import { useAuth0 } from 'react-native-auth0';
 
 export const styles = StyleSheet.create({
   avatar: {
@@ -74,9 +75,16 @@ export const MenuDrawer = ({ navigation }: DrawerContentComponentProps) => {
   }, []);
 
   const { chatClient, logout } = useAppContext();
+  const { clearCredentials } = useAuth0();
 
   if (!chatClient) {
     return null;
+  }
+
+  const globalLogout = () => {
+    logout();
+    clearCredentials();
+
   }
 
   return (
@@ -138,7 +146,7 @@ export const MenuDrawer = ({ navigation }: DrawerContentComponentProps) => {
           </View>
           <TouchableOpacity
             onPress={() => {
-              logout();
+              globalLogout();
             }}
             style={styles.menuItem}
           >

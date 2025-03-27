@@ -190,7 +190,7 @@ const LoginButton: React.FC = () => {
 
   const onPress = async () => {
     try {
-      await authorize({redirectUrl: 'ai.convoe.workforceAi.auth0://dev-b2tyy2ginewj0x16.us.auth0.com/ios/ai.convoe.workforceAi/callback'});
+      await authorize({redirectUrl: 'com.sampleapp.auth0://dev-b2tyy2ginewj0x16.us.auth0.com/android/com.sampleapp/callback'});
       switchUser(user as User);
     } catch (e) {
       console.log(e);

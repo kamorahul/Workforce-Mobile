@@ -25,7 +25,7 @@ const requestNotificationPermission = async () => {
   const authStatus = await messaging.requestPermission();
   const isEnabled =
     authStatus === AuthorizationStatus.AUTHORIZED || authStatus === AuthorizationStatus.PROVISIONAL;
-  console.log('Permission Status', { authStatus, isEnabled });
+  console.log('Permission Status: test', { authStatus, isEnabled });
 };
 
 const requestAndroidPermission = async () => {
